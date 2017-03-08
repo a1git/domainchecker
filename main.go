@@ -1,3 +1,4 @@
+// Check domain response code and time to load.
 package main
 
 import (
@@ -15,16 +16,36 @@ func main() {
 
 	filePtr := flag.String("f", "", "Add file containing URL's")
 	timeOutPtr := flag.Int("t", 10, "Add timeout in seconds")
-	concurrentPtr := flag.Int("c", 10, "Add concurrent checks in units")
+	concurrentPtr := flag.Int("c", 10,
+		"Add concurrent checks in "+
+			"units 1 -> N [Keep in mind that a value to high will saturate "+
+			"your connection and produce inacurate results]")
 
 	flag.Parse()
 
-	if *filePtr == "" {
+	// If flags set to unreasonable values then exit.
+	if *concurrentPtr <= 0 || *timeOutPtr <= 0 {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	domains, totalCount := read(*filePtr)
+	argDomain := flag.Args()
+	domains := []string{}
+	totalCount := 0
+
+	if len(argDomain) > 0 {
+		totalCount = len(argDomain)
+		for _, v := range argDomain {
+			domains = append(domains, v)
+		}
+	} else {
+		if *filePtr == "" {
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+		domains, totalCount = read(*filePtr)
+	}
+
 	result := checker(domains, timeOutPtr, concurrentPtr)
 
 	var goodCounter, badCounter int
